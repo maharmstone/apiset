@@ -1,8 +1,10 @@
-#include <fstream>
+#include "apiset.h"
+#include "mmap.h"
 #include <iostream>
 #include <format>
 #include <vector>
 #include <stdint.h>
+#include <fcntl.h>
 
 struct API_SET_NAMESPACE_ENTRY_10 {
     uint32_t Flags;
@@ -26,31 +28,35 @@ struct API_SET_NAMESPACE_HEADER_10 {
 using namespace std;
 
 int main() {
-    API_SET_NAMESPACE_HEADER_10 h;
-    vector<API_SET_NAMESPACE_ENTRY_10> ents;
+    try {
+        unique_handle hup{open("/home/hellas/Desktop/apiset-22H2", O_RDONLY, 0)};
+        if (hup.get() == -1)
+            throw errno_error("open", errno);
 
-    // FIXME - mmap?
+        // FIXME - check size
 
-    ifstream f("/home/hellas/Desktop/apiset-22H2", ios::binary);
+        mmap m(hup.get());
 
-    // FIXME - use binutils to extract .apiset section
-    // FIXME - solicit filename
-    // FIXME - throw error if fails
+        auto data = m.map();
 
-    f.read((char*)&h, sizeof(h));
+        auto& h = *(API_SET_NAMESPACE_HEADER_10*)data.data();
 
-    cout << format("Version {:x}, Size {:x}, Flags {:x}, Count {:x}, ArrayOffset {:x}, HashOffset {:x}, HashMultiplier {:x}\n",
-                   h.Version, h.Size, h.Flags, h.Count, h.ArrayOffset, h.HashOffset, h.HashMultiplier);
+        // FIXME - use binutils to extract .apiset section
+        // FIXME - solicit filename
+        // FIXME - throw error if fails
 
-    // FIXME - skip to array offset
+        cout << format("Version {:x}, Size {:x}, Flags {:x}, Count {:x}, ArrayOffset {:x}, HashOffset {:x}, HashMultiplier {:x}\n",
+                       h.Version, h.Size, h.Flags, h.Count, h.ArrayOffset, h.HashOffset, h.HashMultiplier);
 
-    ents.resize(h.Count);
+        auto ents = span((const API_SET_NAMESPACE_ENTRY_10*)(data.data() + h.ArrayOffset), h.Count);
 
-    f.read((char*)ents.data(), ents.size() * sizeof(API_SET_NAMESPACE_ENTRY_10));
-
-    for (const auto& e : ents) {
-        cout << format("Flags {:x}, NameOffset {:x}, NameLength {:x}, AliasOffset {:x}, HostsOffset {:x}, NumberOfHosts {:x}\n",
-                       e.Flags, e.NameOffset, e.NameLength, e.AliasOffset, e.HostsOffset, e.NumberOfHosts);
+        for (const auto& e : ents) {
+            cout << format("Flags {:x}, NameOffset {:x}, NameLength {:x}, AliasOffset {:x}, HostsOffset {:x}, NumberOfHosts {:x}\n",
+                           e.Flags, e.NameOffset, e.NameLength, e.AliasOffset, e.HostsOffset, e.NumberOfHosts);
+        }
+    } catch (const exception& e) {
+        cerr << "Exception: " << e.what() << endl;
+        return 1;
     }
 
     return 0;

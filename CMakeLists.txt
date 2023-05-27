@@ -7,7 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 set(SRC_FILES
-	src/apiset.cpp)
+	src/apiset.cpp
+	src/mmap.cpp)
 
 add_executable(apiset ${SRC_FILES})
 
