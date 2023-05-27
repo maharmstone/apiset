@@ -68,14 +68,17 @@ int main() {
         for (const auto& e : ents) {
             auto name = u16string_view((char16_t*)(data.data() + e.NameOffset), e.NameLength / sizeof(char16_t));
 
-            cout << format("Flags {:x}, Name {}, AliasOffset {:x}, HostsOffset {:x}, NumberOfHosts {:x}\n",
+            cout << format("Flags {:x}, Name \"{}\", AliasOffset {:x}, HostsOffset {:x}, NumberOfHosts {:x}\n",
                            e.Flags, utf16_to_utf8(name), e.AliasOffset, e.HostsOffset, e.NumberOfHosts);
 
             auto hosts = span((API_SET_VALUE_ENTRY_81*)(data.data() + e.HostsOffset), e.NumberOfHosts);
 
             for (const auto& host : hosts) {
-                cout << format("\tFlags {:x}, NameOffset {:x}, NameLength {:x}, ValueOffset {:x}, ValueLength {:x}\n",
-                               host.Flags, host.NameOffset, host.NameLength, host.ValueOffset, host.ValueLength);
+                auto host_name = u16string_view((char16_t*)(data.data() + host.NameOffset), host.NameLength / sizeof(char16_t));
+                auto value = u16string_view((char16_t*)(data.data() + host.ValueOffset), host.ValueLength / sizeof(char16_t));
+
+                cout << format("\tFlags {:x}, Name \"{}\", Value \"{}\"\n",
+                               host.Flags, utf16_to_utf8(host_name), utf16_to_utf8(value));
             }
         }
     } catch (const exception& e) {
