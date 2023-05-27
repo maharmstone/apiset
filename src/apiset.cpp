@@ -7,6 +7,16 @@
 #include <stdint.h>
 #include <fcntl.h>
 
+struct API_SET_NAMESPACE_HEADER_10 {
+    uint32_t Version;
+    uint32_t Size;
+    uint32_t Flags;
+    uint32_t Count;
+    uint32_t ArrayOffset;
+    uint32_t HashOffset;
+    uint32_t HashMultiplier;
+};
+
 struct API_SET_NAMESPACE_ENTRY_10 {
     uint32_t Flags;
     uint32_t NameOffset;
@@ -16,14 +26,12 @@ struct API_SET_NAMESPACE_ENTRY_10 {
     uint32_t NumberOfHosts;
 };
 
-struct API_SET_NAMESPACE_HEADER_10 {
-    uint32_t Version;
-    uint32_t Size;
+struct API_SET_VALUE_ENTRY_81 {
     uint32_t Flags;
-    uint32_t Count;
-    uint32_t ArrayOffset;
-    uint32_t HashOffset;
-    uint32_t HashMultiplier;
+    uint32_t NameOffset;
+    uint32_t NameLength;
+    uint32_t ValueOffset;
+    uint32_t ValueLength;
 };
 
 using namespace std;
@@ -62,6 +70,13 @@ int main() {
 
             cout << format("Flags {:x}, Name {}, AliasOffset {:x}, HostsOffset {:x}, NumberOfHosts {:x}\n",
                            e.Flags, utf16_to_utf8(name), e.AliasOffset, e.HostsOffset, e.NumberOfHosts);
+
+            auto hosts = span((API_SET_VALUE_ENTRY_81*)(data.data() + e.HostsOffset), e.NumberOfHosts);
+
+            for (const auto& host : hosts) {
+                cout << format("\tFlags {:x}, NameOffset {:x}, NameLength {:x}, ValueOffset {:x}, ValueLength {:x}\n",
+                               host.Flags, host.NameOffset, host.NameLength, host.ValueOffset, host.ValueLength);
+            }
         }
     } catch (const exception& e) {
         cerr << "Exception: " << e.what() << endl;
