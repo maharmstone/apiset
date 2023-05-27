@@ -3,6 +3,7 @@
 #include <iostream>
 #include <format>
 #include <vector>
+#include <codecvt>
 #include <stdint.h>
 #include <fcntl.h>
 
@@ -26,6 +27,12 @@ struct API_SET_NAMESPACE_HEADER_10 {
 };
 
 using namespace std;
+
+static string utf16_to_utf8(u16string_view sv) {
+    wstring_convert<codecvt_utf8_utf16<char16_t>, char16_t> convert;
+
+    return convert.to_bytes(sv.data(), sv.data() + sv.length());
+}
 
 int main() {
     try {
@@ -51,8 +58,10 @@ int main() {
         auto ents = span((const API_SET_NAMESPACE_ENTRY_10*)(data.data() + h.ArrayOffset), h.Count);
 
         for (const auto& e : ents) {
-            cout << format("Flags {:x}, NameOffset {:x}, NameLength {:x}, AliasOffset {:x}, HostsOffset {:x}, NumberOfHosts {:x}\n",
-                           e.Flags, e.NameOffset, e.NameLength, e.AliasOffset, e.HostsOffset, e.NumberOfHosts);
+            auto name = u16string_view((char16_t*)(data.data() + e.NameOffset), e.NameLength / sizeof(char16_t));
+
+            cout << format("Flags {:x}, Name {}, AliasOffset {:x}, HostsOffset {:x}, NumberOfHosts {:x}\n",
+                           e.Flags, utf16_to_utf8(name), e.AliasOffset, e.HostsOffset, e.NumberOfHosts);
         }
     } catch (const exception& e) {
         cerr << "Exception: " << e.what() << endl;
